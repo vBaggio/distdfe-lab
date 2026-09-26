@@ -1,0 +1,11 @@
+.gradle/
+build/
+dados/
+*.pfx
+*.p12
+.env
+.env.*
+*.pfx.*
+*.p12.*
+*.jks
+*.key
