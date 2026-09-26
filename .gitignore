@@ -9,3 +9,7 @@ dados/
 *.p12.*
 *.jks
 *.key
+node_modules/
+*.pem
+*.PFX
+*.P12

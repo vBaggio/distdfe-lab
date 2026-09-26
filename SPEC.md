@@ -1,4 +1,7 @@
-# Spike DistDFe — especificação
+# DistDFe Lab — especificação
+
+Atualizada em 26/09/2026: consulta exclusivamente manual; nova execução permitida
+somente após **mais de 60 minutos** desde a última chamada.
 
 Protótipo **descartável** para coletar, em produção, os resumos de NF-e emitidas contra o CNPJ de
 uma empresa. O dono do certificado autorizou o uso. Objetivo: montar um acervo real de chaves de
@@ -15,7 +18,7 @@ do XML, taxa de compressão) vieram de **XML sintético**. Falta dado real.
 
 Este spike resolve isso em duas etapas:
 
-1. **v1 (esta spec):** consultar diariamente o serviço oficial da SEFAZ (`NFeDistribuicaoDFe`, do
+1. **v1 (esta spec):** consultar manualmente o serviço oficial da SEFAZ (`NFeDistribuicaoDFe`, do
    Ambiente Nacional) com o certificado A1 da empresa, e coletar os **resumos** das NF-e emitidas
    contra o CNPJ dela, junto com as chaves de acesso. O resumo não traz o XML completo, e isso é
    esperado.
@@ -33,8 +36,9 @@ De quebra, o spike serve de aprendizado para o canal de captura automática que 
   possível e legítimo.
 - **Sem manifestação do destinatário, o serviço entrega só o resumo** (`resNFe`): chave, emitente,
   data, valor, situação. É o esperado na v1.
-- **Na primeira consulta (NSU zero),** a SEFAZ devolve o que houver dos **últimos ~90 dias**. Depois
-  disso, só o que for novo.
+- **Na primeira consulta (NSU zero),** não há garantia de retroativo. Para novos usuários,
+  a geração de NSU começa no primeiro acesso; o retorno 137 é esperado. Há janela de
+  disponibilidade de até ~90 dias para documentos existentes, não um arquivo permanente.
 - **A SEFAZ pune consumo indevido** com o `cStat=656`, que bloqueia o CNPJ por 1 hora. As regras de
   consumo abaixo não são opcionais.
 - **Tudo é produção real, com o CNPJ de uma empresa real.** Nada de testes que disparem consultas em
@@ -108,8 +112,11 @@ use ou substitua. Sem banco: o estado fica em arquivos no `dataDir`.
 
 Violar estas regras gera `cStat=656` (consumo indevido) e **bloqueia o CNPJ por 1 hora**.
 
-1. **O `ultNSU` persiste entre execuções.** Começa em `000000000000000`. Depois de cada resposta,
-   grave o `ultNSU` retornado **antes** de fazer qualquer outra coisa.
+1. **O `ultNSU` persiste entre execuções.** Começa em `000000000000000`. Primeiro preserve
+   a resposta em um lote pendente durável, depois grave o cursor válido retornado e materialize
+   documentos e índice. Isso permite recuperação após queda sem nova consulta à SEFAZ.
+   Respostas de erro sem cursor não apagam o cursor anterior; 656 pode trazer um cursor
+   de recuperação, adotado somente se válido e não regressivo.
 2. **Laço de uma execução:** consulta com o `ultNSU` atual.
    - `cStat=138` (documentos localizados): salva os docs, atualiza o `ultNSU` e, se
      `ultNSU < maxNSU`, consulta de novo em seguida. Se `ultNSU == maxNSU`, para.
@@ -117,16 +124,23 @@ Violar estas regras gera `cStat=656` (consumo indevido) e **bloqueia o CNPJ por 
    - `cStat=656`: para imediatamente.
    - Qualquer outro `cStat`: para e registra.
    - Trava de segurança: no máximo 30 consultas por execução.
-3. **Depois de parar por qualquer motivo**, grave `proximaConsultaPermitida = agora + 1h` (61 min,
-   por folga). **Nenhuma consulta, manual ou agendada, sai antes disso.** A tela mostra o horário.
+3. **Em cada chamada**, persista o início antes do envio e, ao concluir (inclusive com erro),
+   registre `ultimaConsulta` e `proximaConsultaPermitida = ultimaConsulta + 60 minutos`.
+   Novas execuções são recusadas enquanto `agora <= proximaConsultaPermitida`. Lotes
+   consecutivos dentro da mesma execução não esperam esse intervalo. Cliques recusados
+   não renovam o prazo. Após queda com chamada em andamento, aguarde mais de 60 minutos
+   desde a reabertura, pois o término da chamada interrompida não é conhecido.
 4. **Uma execução por vez.** Um disparo concorrente é recusado.
-5. **Agendamento:** uma vez por dia (ex.: 09:00, configurável), mais um botão manual na tela. A
-   janela do Ambiente Nacional é de ~90 dias e o NSU se perde após 60 dias sem consulta, então rodar
-   diariamente enquanto a coleta durar.
+5. **Somente manual:** sem agendamento e sem consulta na inicialização. O usuário dispara
+   pelo botão. Após mais de 60 dias sem uso do serviço, a geração de NSUs é interrompida
+   e retomada na consulta seguinte, sem geração retroativa do período de interrupção.
 
 ## Armazenamento (em `dataDir`)
 
-- `estado.properties`: `ultNSU`, `maxNSU`, `proximaConsultaPermitida`.
+- `estado.properties`: `ultNSU`, `maxNSU`, `ultimaConsulta`, `proximaConsultaPermitida`, identidade
+  CNPJ/ambiente e marcador de chamada em andamento.
+- `pendentes/lote.json`: resposta bruta e metadados para recuperação local; removido após conclusão.
+- `indice.json`: índice interno para leitura pela API, consistente com `indice.csv`.
 - `execucoes.jsonl`: uma linha por consulta à SEFAZ (horário, NSU enviado, `cStat`, `xMotivo`,
   `ultNSU`, `maxNSU`, quantidade de docs).
 - `xml/<schema-sem-versão>/<NSU>.xml`: cada documento **descompactado, exatamente como veio**, sem
@@ -138,7 +152,8 @@ Violar estas regras gera `cStat=656` (consumo indevido) e **bloqueia o CNPJ por 
 ## Tela (uma página HTML estática em `static/index.html`, com JS simples chamando a API)
 
 - **Estado:** `ultNSU`, `maxNSU`, próxima consulta permitida, se há execução em andamento.
-- **Botão "Consultar agora"**, desabilitado enquanto a janela estiver bloqueada.
+- **Botão "Consultar agora"**, desabilitado enquanto a janela estiver bloqueada ou faltar configuração.
+- **Botão "Validar PFX localmente"**, sem acesso à SEFAZ. A aplicação abre sem certificado.
 - **Últimas 20 execuções** (tabela).
 - **Chaves coletadas** (tabela do índice: chave, emitente, data, valor, situação), com o total de
   documentos por schema.
@@ -149,13 +164,17 @@ Violar estas regras gera `cStat=656` (consumo indevido) e **bloqueia o CNPJ por 
 
 - `GET /api/estado`: estado atual e últimas execuções
 - `GET /api/documentos`: conteúdo do índice
-- `POST /api/consultar`: dispara uma execução; `409` se estiver bloqueada ou em andamento
+- `POST /api/consultar`: dispara uma execução assíncrona; `202` ao aceitar, `409` se estiver bloqueada
+  ou em andamento, `422` se faltar configuração ou o PFX não passar na validação local.
+- `POST /api/certificado/validar`: valida o PFX localmente; `200` ou `422`, sem iniciar cooldown.
+- Os POSTs exigem JSON; aplicação restrita a loopback e requisições de mesma origem.
 
 ## Critério de pronto
 
 1. `./gradlew bootRun` com as variáveis de ambiente sobe a aplicação em `http://localhost:8080`.
-2. A primeira consulta em produção retorna `138` ou `137` (e não erro de TLS ou de schema), e os
-   documentos aparecem em `dados/xml/` e na tela.
+2. A primeira consulta em produção retorna `138` ou `137` (e não erro de TLS ou de schema).
+   Com `138`, documentos aparecem em `dados/xml/` e na tela. Com `137`, ausência de documentos
+   é legítima e estado/histórico são atualizados. Este item depende do teste real com PFX.
 3. Uma segunda tentativa logo em seguida é **recusada pela aplicação** (janela de 1 h), sem chegar a
    ir à SEFAZ.
 4. O certificado e a senha não aparecem em nenhum log nem arquivo gerado.

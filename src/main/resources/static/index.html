@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DistDFe Lab</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div><p class="eyebrow">LABORATÓRIO DE DOCUMENTOS FISCAIS</p><h1>DistDFe Lab<span class="dot">.</span></h1>
+        <p class="subtitle">Coleta manual de documentos da NF-e por NSU.</p></div>
+      <span id="ambiente" class="badge">LOCAL</span>
+    </header>
+    <section class="panel control" aria-labelledby="consulta-title">
+      <div class="section-heading"><h2 id="consulta-title">Consulta</h2><span id="status" class="badge">CONECTANDO</span></div>
+      <p id="mensagem" role="status" aria-live="polite">Carregando o estado da aplicação…</p>
+      <p id="pendencia" class="notice" hidden></p>
+      <div class="metrics">
+        <div><span class="label">ÚLTIMO NSU</span><strong id="ultNSU" class="mono">—</strong></div>
+        <div><span class="label">MAIOR NSU</span><strong id="maxNSU" class="mono">—</strong></div>
+        <div><span class="label">ÚLTIMA CHAMADA</span><strong id="ultimaConsulta">—</strong></div>
+        <div><span class="label">LIBERADO APÓS</span><strong id="proximaConsulta">—</strong></div>
+      </div>
+      <div class="actions"><button id="consultar" disabled>Consultar agora</button><button id="validar" class="secondary" disabled>Validar PFX localmente</button><span id="countdown" class="muted"></span></div>
+      <p class="footnote">A consulta usa o certificado configurado neste computador. Após a última chamada, uma nova execução só é permitida quando passarem mais de 60 minutos. Sem agendamento.</p>
+    </section>
+    <section class="panel" aria-labelledby="historico-title">
+      <div class="section-heading"><h2 id="historico-title">Últimas consultas</h2><span class="muted">Até 20 chamadas à SEFAZ</span></div>
+      <div class="table-scroll"><table><thead><tr><th>Horário</th><th>NSU enviado</th><th>Status</th><th>Resultado</th><th class="number">Docs</th><th>NSU retornado</th></tr></thead><tbody id="historico"><tr><td colspan="6" class="empty">Nenhuma consulta realizada.</td></tr></tbody></table></div>
+    </section>
+    <section class="panel" aria-labelledby="documentos-title">
+      <div class="section-heading"><div class="inline"><h2 id="documentos-title">Documentos coletados</h2><span id="total" class="badge">0</span></div><label class="search-label" for="busca">Filtrar <input id="busca" type="search" placeholder="Chave ou emitente" autocomplete="off"></label></div>
+      <div id="schemas" class="schemas"></div>
+      <div class="table-scroll"><table><thead><tr><th>Chave / NSU</th><th>Emitente</th><th>Emissão</th><th class="number">Valor</th><th>Situação / evento</th><th>Schema</th><th class="number">Bytes</th></tr></thead><tbody id="documentos"><tr><td colspan="7" class="empty">Os documentos recebidos aparecerão aqui.</td></tr></tbody></table></div>
+    </section>
+    <footer><span>DistDFe Lab / v1</span><span>Resumos e eventos · XML completo quando disponibilizado pela SEFAZ</span></footer>
+  </main>
+</body>
+</html>

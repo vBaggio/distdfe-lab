@@ -1,0 +1,6 @@
+{
+  "name": "distdfe-lab-ui-tests",
+  "private": true,
+  "scripts": { "test": "node --test src/test/js/*.test.cjs" },
+  "devDependencies": { "jsdom": "^26.1.0" }
+}

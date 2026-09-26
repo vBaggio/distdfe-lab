@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe Id="NFe11111111111111111111111111111111111111111111"><ide><dhEmi>2026-09-20T10:00:00-03:00</dhEmi></ide><emit><CPF>12345678909</CPF><xNome>Emitente</xNome></emit><total><ICMSTot><vNF>234.56</vNF></ICMSTot></total></infNFe></NFe></nfeProc>

@@ -1,37 +1,31 @@
 package br.com.notron.spike.distdfe;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Set;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.nio.file.Path;
-
-/**
- * Configuração do spike. Certificado, senha, CNPJ e UF vêm de variáveis de ambiente
- * (ver README) e nunca do código.
- *
- * @param certPath   caminho do certificado A1 (.pfx/.p12)
- * @param certSenha  senha do certificado
- * @param cnpj       CNPJ do interessado, 14 dígitos
- * @param cufAutor   código IBGE da UF do interessado (ex.: 35 = SP, 41 = PR)
- * @param ambiente   1 = produção, 2 = homologação
- * @param dataDir    diretório onde ficam estado, índice e XMLs
- */
 @ConfigurationProperties("spike")
-public record SpikeProperties(
-        Path certPath,
-        String certSenha,
-        String cnpj,
-        String cufAutor,
-        int ambiente,
-        Path dataDir) {
-
+public record SpikeProperties(Path certPath, String certSenha, String cnpj, String cufAutor,
+                              int ambiente, Path dataDir) {
+    private static final Set<String> UFS = Set.of("11","12","13","14","15","16","17","21","22",
+            "23","24","25","26","27","28","29","31","32","33","35","41","42","43","50","51","52","53");
     public SpikeProperties {
         if (ambiente == 0) ambiente = 1;
+        if (ambiente != 1 && ambiente != 2) throw new IllegalArgumentException("SPIKE_AMBIENTE deve ser 1 ou 2.");
         if (dataDir == null) dataDir = Path.of("dados");
     }
-
-    public String urlServico() {
-        return ambiente == 1
-                ? "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx"
-                : "https://hom1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx";
+    public String pendencia() {
+        if (certPath == null || !Files.isRegularFile(certPath) || !Files.isReadable(certPath))
+            return "Configure SPIKE_CERT_PATH com um arquivo PFX/PKCS12 legível.";
+        if (certSenha == null || certSenha.isEmpty()) return "Configure SPIKE_CERT_SENHA.";
+        if (cnpj == null || !cnpj.matches("[0-9]{14}")) return "Configure SPIKE_CNPJ com 14 dígitos.";
+        if (!UFS.contains(cufAutor == null ? "" : cufAutor)) return "Configure SPIKE_CUF_AUTOR com uma UF válida.";
+        return "";
     }
+    public String urlServico() {
+        return "https://" + (ambiente == 1 ? "www1" : "hom1")
+                + ".nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx";
+    }
+    @Override public String toString() { return "SpikeProperties[configuração protegida]"; }
 }
