@@ -8,19 +8,22 @@ import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.function.Supplier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import javax.net.ssl.*;
 
 public final class SefazClient implements SefazTransport, AutoCloseable {
-    private final SpikeProperties config;
+    private final Supplier<SpikeProperties> config;
     private HttpClient client;
     private final URI endpoint;
-    public SefazClient(SpikeProperties config) { this.config=config; this.endpoint=URI.create(config.urlServico()); }
+    public SefazClient(SpikeProperties config) { this(() -> config); }
+    public SefazClient(Supplier<SpikeProperties> config) { this.config=config; this.endpoint=URI.create(config.get().urlServico()); }
     SefazClient(SpikeProperties config, HttpClient client, URI endpoint) {
-        this.config=config; this.client=client; this.endpoint=endpoint;
+        this.config=() -> config; this.client=client; this.endpoint=endpoint;
     }
     @Override public synchronized void preparar() throws Exception {
+        SpikeProperties config = this.config.get();
         if (!config.pendencia().isEmpty()) throw new IOException(config.pendencia());
         char[] password = config.certSenha().toCharArray();
         try {
@@ -69,6 +72,7 @@ public final class SefazClient implements SefazTransport, AutoCloseable {
     @Override public synchronized void close() {if (client != null) client.close();}
     String envelope(String nsu) {
         if (!DistDfeModels.nsuValido(nsu)) throw new IllegalArgumentException("NSU inválido.");
+        SpikeProperties config = this.config.get();
         if (config.cnpj()==null || !config.cnpj().matches("[0-9]{14}") || config.cufAutor()==null || !config.cufAutor().matches("[0-9]{2}"))
             throw new IllegalArgumentException("CNPJ ou UF inválido.");
         return """

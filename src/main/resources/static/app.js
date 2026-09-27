@@ -65,6 +65,23 @@ async function action(path) {
   catch (e) { text('mensagem', e.message); }
   finally { pending = false; }
 }
+async function refreshCert() {
+  const c = await request('/api/configuracao');
+  text('cert-status', c.configurado ? 'CONFIGURADO' : 'PENDENTE');
+  text('cert-resumo', c.configurado ? `${c.titular || 'Empresa'} · CNPJ ${c.cnpj} · UF ${c.uf} · origem: ${c.origem}` : 'Selecione o certificado, digite a senha e a UF. É só uma vez.');
+  $('cert-form').hidden = c.configurado; $('cert-trocar').hidden = !c.configurado || c.origem !== 'tela';
+}
+$('cert-trocar').addEventListener('click', () => { $('cert-form').hidden = false; $('cert-trocar').hidden = true; });
+$('cert-form').addEventListener('submit', async ev => {
+  ev.preventDefault(); text('cert-msg', 'Salvando…');
+  try {
+    const response = await fetch('/api/configuracao', { method: 'POST', body: new FormData($('cert-form')) });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.mensagem || `Falha HTTP ${response.status}.`);
+    $('cert-senha').value = ''; text('cert-msg', ''); await refreshCert(); await refresh();
+  } catch (e) { text('cert-msg', e.message); }
+});
+refreshCert().catch(() => text('cert-resumo', 'Não foi possível ler a configuração.'));
 $('consultar').addEventListener('click', () => action('/api/consultar'));
 $('validar').addEventListener('click', () => action('/api/certificado/validar'));
 $('busca').addEventListener('input', renderDocuments);

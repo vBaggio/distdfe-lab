@@ -11,8 +11,9 @@ public class AppConfiguration {
     @Bean(destroyMethod="close") FileStore fileStore(SpikeProperties config,DistDfeParser parser,Clock clock) throws IOException {
         return new FileStore(config.dataDir(),parser,clock);
     }
-    @Bean SefazTransport transport(SpikeProperties config) {return new SefazClient(config);}
-    @Bean(destroyMethod="close") ConsultaService service(SpikeProperties config,FileStore store,SefazTransport transport,Clock clock) {
-        return new ConsultaService(config,store,transport,clock);
+    @Bean ConfiguracaoLocal configuracaoLocal(SpikeProperties config) {return new ConfiguracaoLocal(config);}
+    @Bean SefazTransport transport(ConfiguracaoLocal local) {return new SefazClient(local::atual);}
+    @Bean(destroyMethod="close") ConsultaService service(ConfiguracaoLocal local,FileStore store,SefazTransport transport,Clock clock) {
+        return new ConsultaService(local::atual,store,transport,clock);
     }
 }

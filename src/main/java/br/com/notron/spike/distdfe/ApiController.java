@@ -4,12 +4,25 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api")
 public class ApiController {
     private final ConsultaService service;
-    public ApiController(ConsultaService service) {this.service=service;}
+    private final ConfiguracaoLocal configuracao;
+    public ApiController(ConsultaService service,ConfiguracaoLocal configuracao) {this.service=service;this.configuracao=configuracao;}
+    @GetMapping("/configuracao") public ConfiguracaoLocal.Resumo configuracao() {return configuracao.resumo();}
+    @PostMapping(value="/configuracao",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ConfiguracaoLocal.Resumo configurar(@RequestParam("certificado") MultipartFile certificado,
+            @RequestParam("senha") String senha,@RequestParam("uf") String uf) throws java.io.IOException {
+        if(service.status().emAndamento()) throw new ConsultaService.Conflict("Há uma consulta em andamento.");
+        return configuracao.salvar(certificado.getBytes(),senha,uf);
+    }
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String,String>> invalido(IllegalArgumentException e) {
+        return ResponseEntity.status(422).body(Map.of("mensagem",e.getMessage()));
+    }
     @GetMapping("/estado") public ConsultaService.Status estado() {return service.status();}
     @GetMapping("/documentos") public Map<String,Object> documentos() {
         var docs=service.documentos();

@@ -139,6 +139,11 @@ public final class FileStore implements AutoCloseable {
     public synchronized void failure(String id,String sent,Instant at,String message) throws IOException {
         record(new Consulta(id,at,sent,"","",estado.ultNSU(),estado.maxNSU(),0,message)); finish(at);
     }
+    /** Falha antes de qualquer byte chegar à SEFAZ: registra o erro e devolve a janela anterior. */
+    public synchronized void naoEnviada(String id,String sent,Instant at,String message,Instant ultimaAnterior) throws IOException {
+        record(new Consulta(id,at,sent,"","",estado.ultNSU(),estado.maxNSU(),0,message));
+        estado=new Estado(estado.ultNSU(),estado.maxNSU(),ultimaAnterior,false,estado.identidade()); saveState();
+    }
     public synchronized void finish(Instant at) throws IOException {
         estado=new Estado(estado.ultNSU(),estado.maxNSU(),at,false,estado.identidade()); saveState();
     }

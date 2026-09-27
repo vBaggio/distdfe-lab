@@ -54,3 +54,5 @@ footer{flex-direction:column}
 header{gap:8px}
 .eyebrow{font-size:9px;letter-spacing:1px}
 }
+form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+form input, form select { font: inherit; padding: 6px 8px; }

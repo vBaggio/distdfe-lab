@@ -6,6 +6,19 @@ NF-e, preservar documentos recebidos e acompanhar a coleta por NSU em uma tela.
 **Implementado e testado com respostas simuladas. Pronto para o primeiro teste
 com certificado real; a integração em produção ainda não foi validada.**
 
+## Uso rápido
+
+```bash
+./iniciar.sh
+```
+
+Sobe a aplicação e abre o navegador em `http://localhost:8080`. Na primeira vez, configure o
+certificado na própria tela: arquivo `.pfx`, senha e UF. O CNPJ é lido do certificado. Tudo fica
+salvo em `dados/` (fora do git). Depois é só clicar em **Consultar agora**.
+
+Falha de conexão (SEFAZ fora do ar, sem rota) **não** consome a janela de 60 minutos: nada chegou à
+SEFAZ. As variáveis `SPIKE_*` continuam funcionando e, se estiverem completas, têm precedência.
+
 ## O que faz
 
 - Consulta **somente pelo botão**; sem agendamento ou chamada na inicialização.

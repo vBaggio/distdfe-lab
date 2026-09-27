@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("spike")
 public record SpikeProperties(Path certPath, String certSenha, String cnpj, String cufAutor,
                               int ambiente, Path dataDir) {
-    private static final Set<String> UFS = Set.of("11","12","13","14","15","16","17","21","22",
+    static final Set<String> UFS = Set.of("11","12","13","14","15","16","17","21","22",
             "23","24","25","26","27","28","29","31","32","33","35","41","42","43","50","51","52","53");
     public SpikeProperties {
         if (ambiente == 0) ambiente = 1;

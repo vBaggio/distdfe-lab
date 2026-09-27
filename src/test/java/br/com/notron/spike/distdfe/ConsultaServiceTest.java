@@ -24,13 +24,14 @@ class ConsultaServiceTest {
     static class Fake implements SefazTransport {
         final AtomicInteger calls=new AtomicInteger();
         String stat="137";
-        boolean timeout,pages;
+        boolean timeout,pages,semRota;
         CountDownLatch entered,release;
         public void preparar() {}
         public byte[] consultar(String nsu) throws Exception {
             int n=calls.incrementAndGet();
             if(entered!=null) {entered.countDown();release.await();}
             if(timeout) throw new java.net.http.HttpTimeoutException("secret must never be logged");
+            if(semRota) throw new java.net.ConnectException("No route to host");
             if(pages) {
                 String s=new String(DistDfeParserTest.fixture("resposta-138.xml"));
                 for(int i=5;i>=1;i--) s=s.replace("%015d".formatted(i),"%015d".formatted((n-1)*5+i));
@@ -43,6 +44,17 @@ class ConsultaServiceTest {
         long until=System.nanoTime()+TimeUnit.SECONDS.toNanos(10);
         while(service.status().emAndamento()&&System.nanoTime()<until) Thread.sleep(10);
         assertFalse(service.status().emAndamento(),"Execução não terminou");
+    }
+    @Test void falhaDeConexaoNaoConsomeAJanela() throws Exception {
+        var cfg=config(); var fake=new Fake(); fake.semRota=true;
+        try(var store=new FileStore(cfg.dataDir(),new DistDfeParser(),clock);var service=new ConsultaService(cfg,store,fake,clock)) {
+            service.iniciar(); await(service); assertEquals(1,fake.calls.get());
+            assertNull(service.status().ultimaConsulta()); assertTrue(service.status().podeConsultar());
+            assertTrue(service.status().mensagem().contains("não foi consumida"));
+            assertEquals(1,service.status().ultimasExecucoes().size());
+            fake.semRota=false; service.iniciar(); await(service); assertEquals(2,fake.calls.get());
+            assertFalse(service.status().podeConsultar());
+        }
     }
     @Test void limiteExatoDe60MinutosPersisteAposRestart() throws Exception {
         var cfg=config(); var fake=new Fake();

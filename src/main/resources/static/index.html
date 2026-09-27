@@ -14,6 +14,20 @@
         <p class="subtitle">Coleta manual de documentos da NF-e por NSU.</p></div>
       <span id="ambiente" class="badge">LOCAL</span>
     </header>
+    <section class="panel" aria-labelledby="cert-title">
+      <div class="section-heading"><h2 id="cert-title">Certificado</h2><span id="cert-status" class="badge">—</span></div>
+      <p id="cert-resumo" class="muted">Carregando…</p>
+      <button id="cert-trocar" class="secondary" hidden>Trocar certificado</button>
+      <form id="cert-form" hidden>
+        <div class="metrics">
+          <label>Arquivo (.pfx / .p12)<input id="cert-arquivo" name="certificado" type="file" accept=".pfx,.p12" required></label>
+          <label>Senha<input id="cert-senha" name="senha" type="password" autocomplete="off" required></label>
+          <label>UF da empresa<select id="cert-uf" name="uf"><option value="12">AC (12)</option><option value="27">AL (27)</option><option value="16">AP (16)</option><option value="13">AM (13)</option><option value="29">BA (29)</option><option value="23">CE (23)</option><option value="53">DF (53)</option><option value="32">ES (32)</option><option value="52">GO (52)</option><option value="21">MA (21)</option><option value="51">MT (51)</option><option value="50">MS (50)</option><option value="31">MG (31)</option><option value="15">PA (15)</option><option value="25">PB (25)</option><option value="41">PR (41)</option><option value="26">PE (26)</option><option value="22">PI (22)</option><option value="33">RJ (33)</option><option value="24">RN (24)</option><option value="43">RS (43)</option><option value="11">RO (11)</option><option value="14">RR (14)</option><option value="42">SC (42)</option><option value="35" selected>SP (35)</option><option value="28">SE (28)</option><option value="17">TO (17)</option></select></label>
+        </div>
+        <div class="actions"><button type="submit">Salvar certificado</button><span id="cert-msg" class="muted"></span></div>
+        <p class="footnote">Feito uma vez: o CNPJ é lido do próprio certificado e tudo fica salvo em <code>dados/</code> neste computador.</p>
+      </form>
+    </section>
     <section class="panel control" aria-labelledby="consulta-title">
       <div class="section-heading"><h2 id="consulta-title">Consulta</h2><span id="status" class="badge">CONECTANDO</span></div>
       <p id="mensagem" role="status" aria-live="polite">Carregando o estado da aplicação…</p>
